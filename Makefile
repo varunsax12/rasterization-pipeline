@@ -4,7 +4,7 @@ CFLAG += -std=c++11 -Wno-unused-result
 
 
 all:
-	g++ *.cpp -o result $(CFLAG) $(IFLAG)
+	g++ *.cpp -o raster $(CFLAG) $(IFLAG)
 
 clean:
-	rm -f *.o result
+	rm -f *.o raster
