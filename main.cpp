@@ -2,6 +2,7 @@
 #include "raster.h"
 
 int main(int argc, char** argv) {
+
     // initialize frame buffer
     FrameBuffer frameBuffer(256, 256);
 

@@ -8,7 +8,7 @@
 
 #include "fixed.h"
 
-#define FIXED_POINT_SIZE 32
+#define FIXED_POINT_SIZE 8
 
 struct rgb_t {
     uint8_t r;

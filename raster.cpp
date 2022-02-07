@@ -4,17 +4,15 @@
 
 #include "raster.h"
 
-using namespace cocogfx;
-
 /*
 * Function to convert number to Fixed point format
 * @param inVal -> value to convert
 * @return Fixed point format of inVal
 */
 template <typename T>
-Fixed<FIXED_POINT_SIZE> convert_to_fixed(T inVal)
+cocogfx::Fixed<FIXED_POINT_SIZE> convert_to_fixed(T inVal)
 {
-    Fixed<FIXED_POINT_SIZE> retVal = Fixed<FIXED_POINT_SIZE>::make(inVal);
+    cocogfx::Fixed<FIXED_POINT_SIZE> retVal(inVal);
     return retVal;
 }
 
@@ -28,9 +26,9 @@ Fixed<FIXED_POINT_SIZE> convert_to_fixed(T inVal)
 * Logic: The cross product of (A->P)x(A->B) should be negative
 * (IMP): Recomputes the edge value on each call
 */
-Fixed<FIXED_POINT_SIZE> edge_bounds_value(const vertex_fixed_t& A, const vertex_fixed_t& B, const vertex_fixed_t& P)
+cocogfx::Fixed<FIXED_POINT_SIZE> edge_bounds_value(const vertex_fixed_t& A, const vertex_fixed_t& B, const vertex_fixed_t& P)
 {
-    Fixed<FIXED_POINT_SIZE> edgeVal;
+    cocogfx::Fixed<FIXED_POINT_SIZE> edgeVal;
     edgeVal = (A.x - B.x) * (P.y - A.y) - (A.y - B.y) * (P.x - A.x);
     return edgeVal;
 }
@@ -64,10 +62,10 @@ bool edge_bounds_absolute(const vertex_fixed_t& A, const vertex_fixed_t& B, cons
 * Logic: The cross product of (A->P)x(A->B) should be negative
 * (IMP): Incrementally changes the edgeVal post first computation
 */
-Fixed<FIXED_POINT_SIZE> edge_bounds_check_incremental(const vertex_fixed_t& A, const vertex_fixed_t& B,
+cocogfx::Fixed<FIXED_POINT_SIZE> edge_bounds_check_incremental(const vertex_fixed_t& A, const vertex_fixed_t& B,
     const vertex_fixed_t& P, int edgeIndex, bool firstCalc, int colIncrementSign, bool increaseRow)
 {
-    static Fixed<FIXED_POINT_SIZE> edgeVal[3] = {
+    static cocogfx::Fixed<FIXED_POINT_SIZE> edgeVal[3] = {
         convert_to_fixed(0),
         convert_to_fixed(0),
         convert_to_fixed(0)
@@ -75,7 +73,7 @@ Fixed<FIXED_POINT_SIZE> edge_bounds_check_incremental(const vertex_fixed_t& A, c
     // if-else statements are set are per priority of logic
     if (firstCalc)
     {
-        edgeVal[edgeIndex] = convert_to_fixed((A.x - B.x).data() * (P.y - A.y).data() - (A.y - B.y).data() * (P.x - A.x).data());
+        edgeVal[edgeIndex] = (A.x - B.x) * (P.y - A.y) - (A.y - B.y) * (P.x - A.x);
     }
     else if (increaseRow)
     {
@@ -83,7 +81,7 @@ Fixed<FIXED_POINT_SIZE> edge_bounds_check_incremental(const vertex_fixed_t& A, c
     }
     else
     {
-        edgeVal[edgeIndex] -= convert_to_fixed((A.y - B.y).data() * colIncrementSign);
+        edgeVal[edgeIndex] -= (A.y - B.y) * colIncrementSign;
     }
     return edgeVal[edgeIndex];
 }
@@ -160,7 +158,7 @@ void raster_implementation(const vertex_t& V0, const vertex_t& V1, const vertex_
     // Using vertices V0V1 and V0V2
     vertex_fixed_t V0V1 = generate_vector(V0_fixed, V1_fixed);
     vertex_fixed_t V0V2 = generate_vector(V0_fixed, V2_fixed);
-    Fixed<FIXED_POINT_SIZE> area = convert_to_fixed((V0V1.x.data() * V0V2.y.data()) - (V0V1.y.data() * V0V2.x.data()));
+    cocogfx::Fixed<FIXED_POINT_SIZE> area = (V0V1.x * V0V2.y) - (V0V1.y * V0V2.x);
     if (area < convert_to_fixed(0))
     {
         area = area * (convert_to_fixed(-1));
@@ -169,9 +167,9 @@ void raster_implementation(const vertex_t& V0, const vertex_t& V1, const vertex_
     {
         vertex_fixed_t P; P.x = convert_to_fixed(col); P.y = convert_to_fixed(row);
         // Compute edge equations for each to see if point within bounds of triangle formed
-        Fixed<FIXED_POINT_SIZE> edgeVal01 = edge_bounds_check_incremental(V0_fixed, V1_fixed, P, 0, firstCalc, increaseColIndex ? 1 : -1, increaseRow);
-        Fixed<FIXED_POINT_SIZE> edgeVal12 = edge_bounds_check_incremental(V1_fixed, V2_fixed, P, 1, firstCalc, increaseColIndex ? 1 : -1, increaseRow);
-        Fixed<FIXED_POINT_SIZE> edgeVal20 = edge_bounds_check_incremental(V2_fixed, V0_fixed, P, 2, firstCalc, increaseColIndex ? 1 : -1, increaseRow);
+        cocogfx::Fixed<FIXED_POINT_SIZE> edgeVal01 = edge_bounds_check_incremental(V0_fixed, V1_fixed, P, 0, firstCalc, increaseColIndex ? 1 : -1, increaseRow);
+        cocogfx::Fixed<FIXED_POINT_SIZE> edgeVal12 = edge_bounds_check_incremental(V1_fixed, V2_fixed, P, 1, firstCalc, increaseColIndex ? 1 : -1, increaseRow);
+        cocogfx::Fixed<FIXED_POINT_SIZE> edgeVal20 = edge_bounds_check_incremental(V2_fixed, V0_fixed, P, 2, firstCalc, increaseColIndex ? 1 : -1, increaseRow);
         // Reset increaseY and firstCalc
         increaseRow = false;
         firstCalc = false;
@@ -183,12 +181,14 @@ void raster_implementation(const vertex_t& V0, const vertex_t& V1, const vertex_
             // formed from the 2 vertices taken at a time
             // NOTE: Take absolute of each edge value as in the current direction system the edgevalues are
             // negative if the point is inside the triangle
-            float w1 = float(edgeVal01.data())*(-1)/area.data();
-            float w2 = float(edgeVal12.data())*(-1)/area.data();
-            float w3 = float(edgeVal20.data())*(-1)/area.data();
-            P.color.r = (int)(w1*V0.color.r + w2*V1.color.r + w3*V2.color.r);
-            P.color.g = (int)(w1*V0.color.g + w2*V1.color.g + w3*V2.color.g);
-            P.color.b = (int)(w1*V0.color.b + w2*V1.color.b + w3*V2.color.b);
+            cocogfx::Fixed<FIXED_POINT_SIZE> negation(-1);
+            cocogfx::Fixed<FIXED_POINT_SIZE> w1, w2, w3;
+            w1 = edgeVal01*negation/area;
+            w2 = edgeVal12*negation/area;
+            w3 = edgeVal20*negation/area;
+            P.color.r = static_cast<int>(w1*V0.color.r + w2*V1.color.r + w3*V2.color.r);
+            P.color.g = static_cast<int>(w1*V0.color.g + w2*V1.color.g + w3*V2.color.g);
+            P.color.b = static_cast<int>(w1*V0.color.b + w2*V1.color.b + w3*V2.color.b);
             frameBuffer.setPixelColor(P);
         }
         if (increaseColIndex)

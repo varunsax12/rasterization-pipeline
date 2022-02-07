@@ -204,7 +204,7 @@ namespace cocogfx {
         }
 
         friend Fixed operator*(Fixed lhs, Fixed rhs) {
-            return Fixed::make((static_cast<int64_t>(lhs.data_) * rhs.data_) >> FRAC);
+            return Fixed::make((static_cast<int64_t>(lhs.data_) * static_cast<int64_t>(rhs.data_)) >> FRAC);
         }
 
         template <uint32_t F2, typename T2>
